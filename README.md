@@ -16,6 +16,7 @@ A comprehensive demonstration of Aeron low-latency messaging with different seri
 This project demonstrates:
 
 - ✅ **Aeron IPC messaging** - Low-latency inter-process communication
+- ✅ **Embedded Media Driver** - Tests run autonomously without external driver
 - ✅ **Three serialization formats**:
   - **SBE (Simple Binary Encoding)** - Fastest, most compact
   - **Protobuf** - Medium speed, good interoperability
@@ -38,6 +39,7 @@ sbeAeronVirtualThreads/
 │   │   │       ├── aeron/                 # Aeron pub/sub
 │   │   │       ├── model/                 # Domain models
 │   │   │       ├── serialization/         # SBE/Protobuf/JSON serializers
+│   │   │       ├── util/                  # Utilities (embedded driver)
 │   │   │       └── monitoring/            # Resource monitoring
 │   │   ├── proto/                         # Protobuf schemas
 │   │   └── resources/
@@ -59,6 +61,7 @@ sbeAeronVirtualThreads/
 
 - Java 21 or higher
 - Gradle 8.x (or use included wrapper)
+- **No external Aeron Media Driver needed** - Tests use embedded driver
 
 ### Building the Project
 
@@ -69,6 +72,8 @@ sbeAeronVirtualThreads/
 # Run the demo application
 ./gradlew run
 ```
+
+> **Note**: The first build generates code from SBE schemas and Protobuf definitions. All tests run autonomously with an embedded Aeron Media Driver - no external setup required!
 
 ## 🧪 Running Tests
 
@@ -90,27 +95,69 @@ sbeAeronVirtualThreads/
 ./gradlew cucumber
 ```
 
+### Run performance benchmarks
+
+```bash
+# Run PerformanceBenchmarkTest (shows console output)
+./gradlew test --tests "*PerformanceBenchmarkTest"
+
+# View HTML test reports
+open build/reports/tests/test/index.html
+```
+
 ### Run JMH benchmarks
 
 ```bash
 ./gradlew jmhBenchmark
+
+# View JSON results
+cat build/reports/jmh-results.json
 ```
 
-### Run tests with detailed output
+### View test results
 
 ```bash
-./gradlew test --info
+# Console output during test run (enabled by default)
+./gradlew test --tests "*PerformanceBenchmarkTest"
+
+# HTML reports (after running tests)
+open build/reports/tests/test/index.html          # All tests
+open build/reports/tests/unitTest/index.html      # Unit tests only
+open build/reports/tests/cucumber/index.html      # Cucumber tests
+open build/reports/cucumber/cucumber.html         # Cucumber HTML report
 ```
 
 ## 📊 Performance Results
 
+### Benchmark Output Examples
+
+When running performance tests, you'll see output like:
+
+```
+=== Performance Benchmark Results ===
+Format: SBE
+Average Latency: 12,345 ns
+Min Latency: 8,901 ns
+Max Latency: 23,456 ns
+Throughput: 81,234.56 msgs/sec
+
+=== Multiple Concurrent Streams with Virtual Threads ===
+Concurrent streams: 5
+Messages per stream: 200
+Total messages: 1000
+Duration: 123 ms
+Throughput: 8,130.08 msgs/sec
+```
+
 ### Message Size Comparison
 
-| Format   | Typical Size   | Relative |
-| -------- | -------------- | -------- |
-| SBE      | ~60-80 bytes   | 1.0x     |
-| Protobuf | ~70-100 bytes  | 1.2-1.4x |
-| JSON     | ~120-180 bytes | 2.0-2.5x |
+| Format   | Typical Size   | Relative | Notes                                |
+| -------- | -------------- | -------- | ------------------------------------ |
+| SBE      | ~40-80 bytes   | 1.0x     | Fixed-size binary, fastest           |
+| Protobuf | ~40-100 bytes  | 0.8-1.3x | Variable-length, data-dependent size |
+| JSON     | ~120-180 bytes | 2.0-3.0x | Human-readable text                  |
+
+> **Note**: Protobuf can be smaller than SBE for certain data patterns due to variable-length encoding.
 
 ### Throughput Comparison
 
@@ -158,11 +205,18 @@ sbeAeronVirtualThreads/
 
 - `ResourceMonitor` - Tracks memory and thread usage
 
+### Testing Infrastructure
+
+- `EmbeddedMediaDriverManager` - Reference-counted media driver for tests
+- `EmbeddedMediaDriver` - Media driver wrapper for main application
+- All tests run autonomously without external dependencies
+
 ## 📚 What You'll Learn
 
 1. **Aeron Concepts**
 
    - IPC transport with shared memory
+   - Embedded vs external media driver
    - Publisher/Subscriber pattern
    - Fragment handlers and polling
    - Idle strategies and back pressure

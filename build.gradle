@@ -104,8 +104,9 @@ test {
     ]
     
     testLogging {
-        events "passed", "skipped", "failed"
+        events "passed", "skipped", "failed", "standardOut", "standardError"
         exceptionFormat "full"
+        showStandardStreams = true
     }
 }
 
@@ -150,8 +151,9 @@ task unitTest(type: Test) {
     ]
     
     testLogging {
-        events "passed", "skipped", "failed"
+        events "passed", "skipped", "failed", "standardOut", "standardError"
         exceptionFormat "full"
+        showStandardStreams = true
     }
 }
 
