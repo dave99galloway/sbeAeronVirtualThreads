@@ -108,11 +108,20 @@ open build/reports/tests/test/index.html
 ### Run JMH benchmarks
 
 ```bash
-./gradlew jmhBenchmark
+# Run JMH benchmarks (automatically generates HTML report)
+./gradlew jmh
 
-# View JSON results
+# View HTML report (opens in browser)
+open build/reports/jmh-results.html
+
+# Or view JSON results
 cat build/reports/jmh-results.json
+
+# Generate HTML report manually (if needed)
+./gradlew jmhReport
 ```
+
+> **Note**: The HTML report provides a visual comparison of benchmark results with charts showing relative performance between serialization formats and threading models.
 
 ### View test results
 

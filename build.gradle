@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id 'com.google.protobuf' version '0.9.4'
+    id 'me.champeau.jmh' version '0.7.2'
 }
 
 apply plugin: 'java-library'
@@ -161,6 +162,36 @@ tasks.named('check') {
     dependsOn cucumber, unitTest
 }
 
+// Task to generate HTML report from JMH JSON results
+task jmhReport(type: JavaExec) {
+    group = 'verification'
+    description = 'Generate HTML report from JMH JSON results'
+    
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.playground.sbeaeronvirtualthreads.benchmark.JmhReportGenerator'
+    
+    def jsonFile = file('build/reports/jmh-results.json')
+    def htmlFile = file('build/reports/jmh-results.html')
+    
+    args = [jsonFile.absolutePath, htmlFile.absolutePath]
+    
+    doFirst {
+        if (!jsonFile.exists()) {
+            throw new GradleException("JMH results file not found: ${jsonFile}. Run './gradlew jmh' first.")
+        }
+    }
+    
+    doLast {
+        println "HTML report generated: ${htmlFile}"
+        println "Open in browser: file://${htmlFile.absolutePath}"
+    }
+}
+
+// Make jmh task generate HTML report automatically
+tasks.named('jmh') {
+    finalizedBy jmhReport
+}
+
 // Protobuf configuration
 protobuf {
     protoc {
@@ -198,22 +229,16 @@ task generateSbe(type: JavaExec) {
 
 compileJava.dependsOn generateSbe, generateProto
 
-// JMH Benchmark task
-task jmhBenchmark(type: JavaExec) {
-    group = 'benchmark'
-    description = 'Run JMH benchmarks'
-    
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'org.openjdk.jmh.Main'
-    
-    args = [
-        '.*Benchmark.*',
-        '-f', '1',
-        '-wi', '3',
-        '-i', '5',
-        '-r', '1',
-        '-w', '1',
-        '-rf', 'json',
-        '-rff', 'build/reports/jmh-results.json'
+// JMH Configuration
+jmh {
+    fork = 1
+    warmupIterations = 3
+    iterations = 5
+    timeUnit = 'ns'
+    resultFormat = 'JSON'
+    resultsFile = file('build/reports/jmh-results.json')
+    jvmArgs = [
+        '--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.util.zip=ALL-UNNAMED'
     ]
 }
