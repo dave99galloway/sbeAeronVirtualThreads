@@ -1,7 +1,10 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.google.protobuf' version '0.9.4'
 }
+
+apply plugin: 'java-library'
 
 application {
     mainClass = 'com.playground.sbeaeronvirtualthreads.Main'
@@ -22,7 +25,7 @@ repositories {
 sourceSets {
     main {
         java {
-            srcDirs = ['src/main/java']
+            srcDirs = ['src/main/java', 'build/generated-src', 'build/generated/source/proto/main/java']
         }
     }
     test {
@@ -51,6 +54,22 @@ configurations {
 }
 
 dependencies {
+    // Aeron for low-latency messaging
+    implementation 'io.aeron:aeron-all:1.44.1'
+    
+    // SBE for efficient binary encoding
+    implementation 'uk.co.real-logic:sbe-all:1.32.0'
+    
+    // Protobuf
+    implementation 'com.google.protobuf:protobuf-java:3.25.1'
+    
+    // Jackson for JSON
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.0'
+    
+    // JMH for benchmarking
+    implementation 'org.openjdk.jmh:jmh-core:1.37'
+    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+    
     // Main dependencies
     implementation 'org.slf4j:slf4j-api:2.0.9'
     implementation 'ch.qos.logback:logback-classic:1.4.11'
@@ -99,6 +118,11 @@ task cucumber(type: Test) {
         exceptionFormat "full"
     }
     
+    jvmArgs = [
+        '--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.util.zip=ALL-UNNAMED'
+    ]
+    
     systemProperty 'cucumber.plugin', 'pretty, html:build/reports/cucumber/cucumber.html, json:build/reports/cucumber/cucumber.json'
     systemProperty 'cucumber.glue', 'com.playground.sbeaeronvirtualthreads.cucumber'
     systemProperty 'cucumber.features', 'src/cucumber/resources'
@@ -114,6 +138,11 @@ task unitTest(type: Test) {
     
     useJUnitPlatform()
     
+    jvmArgs = [
+        '--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.util.zip=ALL-UNNAMED'
+    ]
+    
     testLogging {
         events "passed", "skipped", "failed"
         exceptionFormat "full"
@@ -122,4 +151,61 @@ task unitTest(type: Test) {
 
 tasks.named('check') {
     dependsOn cucumber, unitTest
+}
+
+// Protobuf configuration
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.25.1'
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java {}
+            }
+        }
+    }
+}
+
+// SBE code generation task
+task generateSbe(type: JavaExec) {
+    group = 'build'
+    description = 'Generate SBE message codecs'
+    
+    classpath = configurations.runtimeClasspath
+    mainClass = 'uk.co.real_logic.sbe.SbeTool'
+    
+    args = [
+        'src/main/resources/sbe-schema.xml'
+    ]
+    
+    systemProperty 'sbe.output.dir', 'build/generated-src'
+    systemProperty 'sbe.target.language', 'Java'
+    systemProperty 'sbe.java.generate.interfaces', 'true'
+    
+    doFirst {
+        mkdir 'build/generated-src'
+    }
+}
+
+compileJava.dependsOn generateSbe, generateProto
+
+// JMH Benchmark task
+task jmhBenchmark(type: JavaExec) {
+    group = 'benchmark'
+    description = 'Run JMH benchmarks'
+    
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    
+    args = [
+        '.*Benchmark.*',
+        '-f', '1',
+        '-wi', '3',
+        '-i', '5',
+        '-r', '1',
+        '-w', '1',
+        '-rf', 'json',
+        '-rff', 'build/reports/jmh-results.json'
+    ]
 }

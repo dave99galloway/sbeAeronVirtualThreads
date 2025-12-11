@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2016/sbe"
+                   package="com.playground.sbeaeronvirtualthreads.sbe"
+                   id="1"
+                   version="0"
+                   semanticVersion="5.2"
+                   description="Message schema for Aeron performance testing"
+                   byteOrder="littleEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        
+        <composite name="groupSizeEncoding" description="Repeating group dimensions">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="numInGroup" primitiveType="uint16"/>
+        </composite>
+        
+        <composite name="varStringEncoding" description="Variable length string">
+            <type name="length" primitiveType="uint32" maxValue="1073741824"/>
+            <type name="varData" primitiveType="uint8" length="0" characterEncoding="UTF-8"/>
+        </composite>
+    </types>
+
+    <sbe:message name="TradeMessage" id="1" description="Trade message">
+        <field name="tradeId" id="1" type="int64"/>
+        <field name="timestamp" id="2" type="int64"/>
+        <field name="price" id="3" type="double"/>
+        <field name="quantity" id="4" type="int32"/>
+        <field name="side" id="5" type="char"/>
+        <data name="symbol" id="6" type="varStringEncoding"/>
+        <data name="counterparty" id="7" type="varStringEncoding"/>
+    </sbe:message>
+
+    <sbe:message name="MarketDataMessage" id="2" description="Market data snapshot">
+        <field name="timestamp" id="1" type="int64"/>
+        <field name="bidPrice" id="2" type="double"/>
+        <field name="askPrice" id="3" type="double"/>
+        <field name="bidSize" id="4" type="int32"/>
+        <field name="askSize" id="5" type="int32"/>
+        <data name="symbol" id="6" type="varStringEncoding"/>
+    </sbe:message>
+
+    <sbe:message name="PerformanceMetrics" id="3" description="Performance metrics">
+        <field name="messageCount" id="1" type="int64"/>
+        <field name="totalBytes" id="2" type="int64"/>
+        <field name="averageLatencyNanos" id="3" type="int64"/>
+        <field name="minLatencyNanos" id="4" type="int64"/>
+        <field name="maxLatencyNanos" id="5" type="int64"/>
+        <data name="testName" id="6" type="varStringEncoding"/>
+    </sbe:message>
+</sbe:messageSchema>
